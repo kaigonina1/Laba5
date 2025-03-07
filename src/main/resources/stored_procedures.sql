@@ -3,13 +3,15 @@ CREATE EXTENSION IF NOT EXISTS dblink;
 CREATE OR REPLACE PROCEDURE sp_create_database(p_dbname VARCHAR)
 LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM dblink_exec(
-        'host=localhost dbname=postgres user=' || current_user,
-        'CREATE DATABASE ' || quote_ident(p_dbname)
-    );
-    RAISE NOTICE 'Database "%" created.', p_dbname;
+    IF EXISTS (SELECT 1 FROM pg_database WHERE datname = p_dbname) THEN
+        RAISE NOTICE 'Database "%" already exists.', p_dbname;
+    ELSE
+        EXECUTE format('CREATE DATABASE %I', p_dbname);
+        RAISE NOTICE 'Database "%" created.', p_dbname;
+    END IF;
 END;
 $$;
+
 
 CREATE OR REPLACE PROCEDURE sp_drop_database(p_dbname VARCHAR)
 LANGUAGE plpgsql AS $$

@@ -34,49 +34,26 @@ public class DBManager {
         return url.substring(url.lastIndexOf("/") + 1);
     }
 
-    public boolean databaseExists(String dbName) {
-        String testUrl = "jdbc:postgresql://localhost:5432/" + dbName;
-        try (Connection conn = DriverManager.getConnection(testUrl, user, password)) {
-            return true;  // Если соединение успешно, значит база существует
-        } catch (SQLException e) {
-            // Если ошибка подключения, значит база не существует
-            if (e.getSQLState().equals("08006")) { // Проверяем ошибку подключения к базе данных
-                return false;
-            }
-            // Логируем все другие исключения
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-
     public void createDatabase(String newDbName) throws SQLException {
-        // Проверка существования базы данных
-        if (!databaseExists(newDbName)) {
-            try (Connection conn = getConnection("postgres");
-                 Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("CREATE DATABASE " + newDbName);
-                System.out.println("✅ База данных " + newDbName + " успешно создана!");
-            }
-        } else {
-            System.out.println("⚠️ База данных " + newDbName + " уже существует.");
-        }
-    }
-
-
-
-    public void dropDatabase(String dbName) throws SQLException {
         try (Connection conn = getConnection("postgres");
-             CallableStatement stmt = conn.prepareCall("CALL sp_drop_database(?, ?)")) {
-            stmt.setString(1, dbName);
-            stmt.setString(2, password);
+             CallableStatement stmt = conn.prepareCall("CALL public.sp_create_database(?)")) {
+            stmt.setString(1, newDbName);
             stmt.execute();
         }
     }
 
+    public void dropDatabase(String dbName) throws SQLException {
+        try (Connection conn = getConnection("postgres");
+             CallableStatement stmt = conn.prepareCall("CALL public.sp_drop_database(?)")) {
+            stmt.setString(1, dbName);
+            stmt.execute();
+        }
+    }
+
+
     public void createTable(String tableName) throws SQLException {
         try (Connection conn = getConnection();
-             CallableStatement stmt = conn.prepareCall("CALL sp_create_table(?)")) {
+             CallableStatement stmt = conn.prepareCall("CALL public.sp_create_table(?)")) {
             stmt.setString(1, tableName);
             stmt.execute();
         }
